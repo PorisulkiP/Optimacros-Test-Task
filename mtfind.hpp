@@ -9,7 +9,7 @@
 #include <future>
 #include <vector>
 #include <mutex>
-#include <map>
+#include <unordered_map>
 
 std::mutex g_mutex;
 
@@ -55,6 +55,8 @@ std::string comparisonWords(const std::string& word, const std::string& mask)
 
 int main(int argc, const char* argv[]) // в argv получаются входные данные
 {
+	//argc = 3;
+	//const char* argv[] = {"qwerty", "C:\\Users\\alex1\\projects\\test2.txt", "?ad" };
 	// если передаются аргументы, то argc будет больше 1
 	// на вход передаются параметры: mtfind.exe 
 	if (argc == 3)
@@ -86,9 +88,17 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 						if (dataFromFile.at(it).empty()) { continue; }
 						// Получается всё первое число в виде строки, 
 						// чтобы не было ограничений на ко-во символов
-						char* next_token = NULL; // для безопасности strtok_s
-						std::string num = strtok_s(dataFromFile.at(it).data(), " ", &next_token);
 						std::string line = dataFromFile.at(it);
+						char* next_token = NULL; // для безопасности strtok_s
+						char* dup = _strdup(dataFromFile.at(it).c_str());
+						if (dup == NULL) 
+						{
+							std::cout << "Система не может выделить столько памяти" << std::endl;
+							system("pause");
+							return 1;
+						}
+						std::string num = strtok_s(dup, " ", &next_token);
+						free(dup);
 						line.erase(0, num.length()); // Удаление числа из начала строки
 						std::istringstream ist(line);
 						std::string word;
@@ -99,7 +109,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 
 							std::string tmpAns = comparisonWords(word, mask);
 							if (!tmpAns.empty())
-							{
+							{//
 								bool flag = true;
 								for (auto& itAns : answer)
 								{
@@ -113,9 +123,10 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 								if (flag) // Если слово не повторяется, то добавляется в map
 								{
 									std::lock_guard<std::mutex> lk(g_mutex);
-									answer.insert(std::make_pair(tmpAns, num));
+									answer.insert(std::make_pair(std::move(tmpAns), std::move(num)));
 								}
 							}
+							dataFromFile.at(it).clear();
 						}
 					}
 				});
@@ -135,8 +146,9 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 		// Полученные элементы сортируются по значению
 		std::vector<std::pair<std::string, std::string>> elems(answer.begin(), answer.end());
 		std::sort(elems.begin(), elems.end(), valComp);
+		answer.clear();
 
-		std::cout << answer.size() << std::endl; // Вывод кол-ва найдённых элементов
+		std::cout << answer.size() << std::endl; // Вывод кол-ва найдtенных элементов
 		for (auto& word : elems) // Вывод вектора в консоль
 		{
 			std::cout << word.second << " " << word.first << std::endl;
