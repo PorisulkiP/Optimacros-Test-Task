@@ -13,9 +13,12 @@
 
 std::mutex g_mutex;
 
-inline // для std::sort
-bool valComp(std::pair<std::string, std::string> a,
-	std::pair<std::string, std::string> b)
+// Фнкция сравнивает две пары строк.
+// Пример:
+//    std::sort(elems.begin(), elems.end(), valComp);
+inline
+bool valComp(const std::pair<std::string, std::string> a,
+			 const std::pair<std::string, std::string> b)
 {
 	return a.second < b.second;
 }
@@ -55,12 +58,8 @@ std::string comparisonWords(const std::string& word, const std::string& mask)
 }
 
 int main(int argc, const char* argv[]) // в argv получаются входные данные
-{
-	//argc = 3;
-	//const char* argv[] = {"qwerty", "C:\\Users\\alex1\\projects\\test2.txt", "?ad" };
-	// если передаются аргументы, то argc будет больше 1
-	// на вход передаются параметры: mtfind.exe 
-	if (argc == 3)
+{	
+	if (argc == 3) // Если передаются аргументы, то argc будет больше 1
 	{
 		std::ifstream in(argv[1]); // окрываем файл для чтения
 		std::vector<std::string> dataFromFile;
@@ -110,7 +109,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 
 							std::string tmpAns = comparisonWords(word, mask);
 							if (!tmpAns.empty())
-							{//
+							{
 								bool flag = true;
 								for (auto& itAns : answer)
 								{
@@ -144,7 +143,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 			}
 		}
 
-		// TODO(alexey.bubnov1228@gmail.com): перенести сортировку в отдельный поток
+		// TODO(alexey.bubnov1228@gmail.com): перенести сортировку и очистку в отдельные потоки
 		// Полученные элементы сортируются по значению
 		std::vector<std::pair<std::string, std::string>> elems(answer.begin(), answer.end());
 		std::sort(elems.begin(), elems.end(), valComp);
