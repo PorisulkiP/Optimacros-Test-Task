@@ -52,7 +52,9 @@
 </p>
 
 <h2> Вызов программы </h2>
+
 ![image](https://user-images.githubusercontent.com/48221009/181612494-afce4e49-cd10-4ce9-af88-f7a3b5b72233.png)
 
 <h2> Загрузка потоков ЦП при работе </h2>
 
+![image](https://user-images.githubusercontent.com/48221009/181618449-501abd8c-9a13-4d1e-8661-852b8749b576.png)
