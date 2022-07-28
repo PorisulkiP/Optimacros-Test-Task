@@ -12,138 +12,143 @@
 #include <map>
 
 std::mutex g_mutex;
-//int main_1(int argc, const char* argv[]);
-//int main() 
-//{
-//    const char* argv[] = { "C:\\Users\\alex1\\projects\\test2.txt", "?ad"};
-//    
-//    main_1(2, argv);
-//    return 0;
-//}
 
+bool valComp(std::pair<std::string, std::string> a, 
+			 std::pair<std::string, std::string> b)
+{
+	return a.second < b.second;
+}
+
+// Фнкция сравнивает слово по маске.
+// Пример:
+//    std::string tmpAns = comparisonWords(word, mask);
 std::string comparisonWords(const std::string& word, const std::string& mask)
-{   /*  
-    *   алло | ?ло \            алло | ?да  \
-    *   ?ло   ?ло   - "лло"     ?да   ?да    - ""
-    *   алло алло  /            алло алло   /
-    */
-    for (size_t wI = 0; wI < word.length(); ++wI) // wI - word index
-    {        
-        size_t mICount = 0;
-        std::string res;
-        for (size_t mI = 0; mI < mask.length(); ++mI) // mI - mask index
-        {
-            if (wI + mI < word.length())
-            {
-                if ((mask[mI] == '?') || (word[wI + mI] == mask[mI]))
-                {
-                    res += word[wI + mI];
-                    ++mICount;
-                }
-            }
-            else { break; }
-        }
-        
-        if (mICount == mask.length()) { return res; }
-    }
-    return "";
+{   /*	
+	*   алло | ?ло \            алло | ?да  \
+	*   ?ло   ?ло   - "лло"     ?да   ?да    - ""
+	*   алло алло  /            алло алло   /
+	*/
+
+	for (size_t wI = 0; wI < word.length(); ++wI) // wI - word index
+	{
+		size_t mICount = 0; // Колличество совпадений по по маске
+		std::string res; // Итоговая строка
+		for (size_t mI = 0; mI < mask.length(); ++mI) // mI - mask index
+		{
+			if (wI + mI < word.length())
+			{
+				// если знак из маски это ?, то подойдёт любой символ из строки
+				if ((mask[mI] == '?') || (word[wI + mI] == mask[mI]))
+				{
+					res += word[wI + mI];
+					++mICount;
+				}
+			}
+			else { break; }
+		}
+		// Когда пол-во совпадений по маске равно кол-ву элементов в маске,
+		// значит строка полностью подходит под маску
+		if (mICount == mask.length()) { return res; }
+	}
+	return "";
 }
 
 int main(int argc, const char* argv[]) // в argv получаются входные данные
 {
-    // если передаются аргументы, то argc будет больше 1
-    // на вход передаются параметры: mtfind.exe 
-    if (argc == 3) 
-    {
-        std::ifstream in(argv[1]); // окрываем файл для чтения
-        std::vector<std::string> dataFromFile;
-        std::unordered_map<std::string, std::string> answer;
-        std::string mask = argv[2];
-        std::vector<std::thread> threads; // Создаётся вектор потоков
+	// если передаются аргументы, то argc будет больше 1
+	// на вход передаются параметры: mtfind.exe 
+	if (argc == 3)
+	{
+		std::ifstream in(argv[1]); // окрываем файл для чтения
+		std::vector<std::string> dataFromFile;
+		std::string mask = argv[2];		
 
-        if (in.is_open())
-        {
-            std::string line;
-            while (getline(in, line))
-            {
-                dataFromFile.emplace_back(line); // Данные из файла записываются в вектор
-            }
-        }
-        in.close(); // закрываем файл
-        
-        uint32_t operationCount = dataFromFile.size() - mask.length();
-        uint32_t threadCount = std::thread::hardware_concurrency();
-        std::thread comparationThread;
+		if (in.is_open())
+		{
+			std::string line;
+			while (getline(in, line))
+			{
+				dataFromFile.emplace_back(line); // Данные из файла записываются в вектор
+			}
+		}
+		in.close(); // закрываем файл
 
-        for (size_t i = 0; i < threadCount; ++i)
-        {            
-            std::thread comparationThread = std::thread([=, &answer, &dataFromFile] 
-                {
-                // TODO: При недоборе данных в dataFromFile.at(it) под размер it += threadCount
-                // выделить столько потоков, сколько осталось данных
-                for (size_t it = i; it <= operationCount; it += threadCount)
-                {
-                    if (dataFromFile.at(it).empty()) { continue; }
-                    // Получается всё первое значение
-                    char* next_token = NULL;
-                    std::string num = strtok_s(dataFromFile.at(it).data(), " ", &next_token);
-                    std::istringstream ist(dataFromFile.at(it));
-                    std::string word;
-                    while (ist >> word)
-                    {
-                        if (word.length() < mask.length()) { continue; }
-                        
-                        std::string tmpAns = comparisonWords(word, mask);
+		std::unordered_map<std::string, std::string> answer;
+		std::vector<std::thread> threads; // Создаётся вектор потоков
+		uint16_t threadCount = std::thread::hardware_concurrency();
+		
+		for (size_t i = 0; i < threadCount; ++i)
+		{
+			std::thread comparationThread = std::thread([=, &answer, &dataFromFile]
+				{
+					for (size_t it = i; it < dataFromFile.size(); it += threadCount)
+					{
+						if (dataFromFile.at(it).empty()) { continue; }
+						// Получается всё первое число в виде строки, 
+						// чтобы не было ограничений на ко-во символов
+						char* next_token = NULL; // для безопасности strtok_s
+						std::string num = strtok_s(dataFromFile.at(it).data(), " ", &next_token);
+						std::string line = dataFromFile.at(it);
+						line.erase(0, num.length()); // Удаление числа из начала строки
+						std::istringstream ist(line);
+						std::string word;
+						// Из каждого предложения достаются слова
+						while (ist >> word)
+						{
+							if (word.length() < mask.length()) { continue; }
 
-                        if (!tmpAns.empty())
-                        {
-                            bool flag = true;
-                            for (auto& itAns : answer)
-                            {                                
-                                if (itAns.second == tmpAns)
-                                {
-                                    flag = false;
-                                    break;
-                                }
-                            }
-                            if(flag) // Если слово не повторяется, то добавляется в map
-                            {      
-                                std::lock_guard<std::mutex> lk(g_mutex);
-                                answer.insert(std::make_pair(num, tmpAns));
-                            }
-                        }
-                    }
-                }
-            });
-            threads.emplace_back(std::move(comparationThread)); // Поток добавляется в вектор потоков
-        }                
-        
-        // Объединение всех потоков
-        for (auto&& thr : threads)
-        {            
-            if (thr.joinable())
-            {
-                thr.join();
-            }
-        }
+							std::string tmpAns = comparisonWords(word, mask);
+							if (!tmpAns.empty())
+							{
+								bool flag = true;
+								for (auto& itAns : answer)
+								{
+									
+									if (itAns.first == tmpAns)
+									{
+										flag = false;
+										break;
+									}
+								}
+								if (flag) // Если слово не повторяется, то добавляется в map
+								{
+									std::lock_guard<std::mutex> lk(g_mutex);
+									answer.insert(std::make_pair(tmpAns, num));
+								}
+							}
+						}
+					}
+				});
+			threads.emplace_back(std::move(comparationThread)); // Поток добавляется в вектор потоков
+		}
 
-        
-        std::cout << answer.size() << std::endl; // Вывод кол-ва найдённых элементов
-        
-        for (auto& word : answer) // Вывод итога в консоль
-        {
-            std::cout << word.first << " " << word.second << std::endl;
-        }
-        
-    }
-    else  
-    { 
-        std::cout << "Неправильно введены аргументы" << std::endl; 
-        system("pause");
-        return 1;
-    }
+		// Объединение всех потоков
+		for (auto&& thr : threads)
+		{
+			if (thr.joinable())
+			{
+				thr.join();
+			}
+		}
 
-    system("pause");
-    return 0;
+		// TODO(alexey.bubnov1228@gmail.com): перенести сортировку в отдельный поток
+		// Полученные элементы сортируются по значению
+		std::vector<std::pair<std::string, std::string>> elems(answer.begin(), answer.end());
+		std::sort(elems.begin(), elems.end(), valComp);
+
+		std::cout << answer.size() << std::endl; // Вывод кол-ва найдённых элементов
+		for (auto& word : elems) // Вывод вектора в консоль
+		{
+			std::cout << word.second << " " << word.first << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << "Неправильно введены аргументы" << std::endl;
+		system("pause");
+		return 1;
+	}
+
+	system("pause");
+	return 0;
 }
-
