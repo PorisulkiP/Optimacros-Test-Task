@@ -13,6 +13,7 @@
 
 std::mutex g_mutex;
 
+inline // для std::sort
 bool valComp(std::pair<std::string, std::string> a,
 	std::pair<std::string, std::string> b)
 {
