@@ -13,8 +13,8 @@
 
 std::mutex g_mutex;
 
-bool valComp(std::pair<std::string, std::string> a, 
-			 std::pair<std::string, std::string> b)
+bool valComp(std::pair<std::string, std::string> a,
+	std::pair<std::string, std::string> b)
 {
 	return a.second < b.second;
 }
@@ -23,7 +23,7 @@ bool valComp(std::pair<std::string, std::string> a,
 // Пример:
 //    std::string tmpAns = comparisonWords(word, mask);
 std::string comparisonWords(const std::string& word, const std::string& mask)
-{   /*	
+{   /*
 	*   алло | ?ло \            алло | ?да  \
 	*   ?ло   ?ло   - "лло"     ?да   ?да    - ""
 	*   алло алло  /            алло алло   /
@@ -63,7 +63,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 	{
 		std::ifstream in(argv[1]); // окрываем файл для чтения
 		std::vector<std::string> dataFromFile;
-		std::string mask = argv[2];		
+		std::string mask = argv[2];
 
 		if (in.is_open())
 		{
@@ -78,7 +78,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 		std::unordered_map<std::string, std::string> answer;
 		std::vector<std::thread> threads; // Создаётся вектор потоков
 		uint16_t threadCount = std::thread::hardware_concurrency();
-		
+
 		for (size_t i = 0; i < threadCount; ++i)
 		{
 			std::thread comparationThread = std::thread([=, &answer, &dataFromFile]
@@ -91,7 +91,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 						std::string line = dataFromFile.at(it);
 						char* next_token = NULL; // для безопасности strtok_s
 						char* dup = _strdup(dataFromFile.at(it).c_str());
-						if (dup == NULL) 
+						if (dup == NULL)
 						{
 							std::cout << "Система не может выделить столько памяти" << std::endl;
 							system("pause");
@@ -113,7 +113,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 								bool flag = true;
 								for (auto& itAns : answer)
 								{
-									
+
 									if (itAns.first == tmpAns)
 									{
 										flag = false;
@@ -123,7 +123,8 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 								if (flag) // Если слово не повторяется, то добавляется в map
 								{
 									std::lock_guard<std::mutex> lk(g_mutex);
-									answer.insert(std::make_pair(std::move(tmpAns), std::move(num)));
+									// num без std::move, поскольку может повторяться
+									answer.insert(std::make_pair(std::move(tmpAns), num));
 								}
 							}
 							dataFromFile.at(it).clear();
@@ -148,7 +149,7 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 		std::sort(elems.begin(), elems.end(), valComp);
 		answer.clear();
 
-		std::cout << answer.size() << std::endl; // Вывод кол-ва найдtенных элементов
+		std::cout << elems.size() << std::endl; // Вывод кол-ва найденных элементов
 		for (auto& word : elems) // Вывод вектора в консоль
 		{
 			std::cout << word.second << " " << word.first << std::endl;
