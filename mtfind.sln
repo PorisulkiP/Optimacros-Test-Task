@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.31410.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mtfind", "mtfind.vcxproj", "{9EBB1490-202E-4118-AD13-AFF15AC36053}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TEST_mtfind", "..\TEST_mtfind\TEST_mtfind.vcxproj", "{63DD2DCA-1A84-4BA0-A6C8-C5A1D8A78201}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TEST_mtfind", "TEST_mtfind\TEST_mtfind.vcxproj", "{63DD2DCA-1A84-4BA0-A6C8-C5A1D8A78201}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -12,15 +12,14 @@
 #include <map>
 
 std::mutex g_mutex;
-int main_1(int argc, const char* argv[]);
-
-int main() 
-{
-    const char* argv[] = { "C:\\Users\\alex1\\projects\\test2.txt", "?ad"};
-    
-    main_1(2, argv);
-    return 0;
-}
+//int main_1(int argc, const char* argv[]);
+//int main() 
+//{
+//    const char* argv[] = { "C:\\Users\\alex1\\projects\\test2.txt", "?ad"};
+//    
+//    main_1(2, argv);
+//    return 0;
+//}
 
 std::string comparisonWords(const std::string& word, const std::string& mask)
 {   /*  
@@ -50,14 +49,16 @@ std::string comparisonWords(const std::string& word, const std::string& mask)
     return "";
 }
 
-int main_1(int argc, const char* argv[]) // в argv получаются входные данные
+int main(int argc, const char* argv[]) // в argv получаются входные данные
 {
-    if (argc == 2) // если передаем аргументы, то argc будет больше 1
+    // если передаются аргументы, то argc будет больше 1
+    // на вход передаются параметры: mtfind.exe 
+    if (argc == 3) 
     {
-        std::ifstream in(argv[0]); // окрываем файл для чтения
+        std::ifstream in(argv[1]); // окрываем файл для чтения
         std::vector<std::string> dataFromFile;
-        std::map<std::string, std::string> answer;
-        std::string mask = argv[1];
+        std::unordered_map<std::string, std::string> answer;
+        std::string mask = argv[2];
         std::vector<std::thread> threads; // Создаётся вектор потоков
 
         if (in.is_open())
@@ -91,11 +92,12 @@ int main_1(int argc, const char* argv[]) // в argv получаются вхо�
                     while (ist >> word)
                     {
                         if (word.length() < mask.length()) { continue; }
-                        bool flag = true;
+                        
                         std::string tmpAns = comparisonWords(word, mask);
 
                         if (!tmpAns.empty())
                         {
+                            bool flag = true;
                             for (auto& itAns : answer)
                             {                                
                                 if (itAns.second == tmpAns)
@@ -104,7 +106,7 @@ int main_1(int argc, const char* argv[]) // в argv получаются вхо�
                                     break;
                                 }
                             }
-                            if(flag)
+                            if(flag) // Если слово не повторяется, то добавляется в map
                             {      
                                 std::lock_guard<std::mutex> lk(g_mutex);
                                 answer.insert(std::make_pair(num, tmpAns));
