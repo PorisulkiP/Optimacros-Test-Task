@@ -55,6 +55,12 @@
 
 ![image](https://user-images.githubusercontent.com/48221009/181612494-afce4e49-cd10-4ce9-af88-f7a3b5b72233.png)
 
-<h2> Загрузка потоков ЦП при работе </h2>
+<h2> Загрузка потоков ЦП при работе с полным объёмом файла в 393Мб</h2>
 
 ![image](https://user-images.githubusercontent.com/48221009/181618449-501abd8c-9a13-4d1e-8661-852b8749b576.png)
+
+<h2> Загрузка потоков ЦП при работе с 100 строк на поток при объёме файла в 2714401 строк</h2>
+
+![image](https://user-images.githubusercontent.com/48221009/182021515-3753c650-d865-47bd-81bb-7b892ddb0286.png)
+
+
