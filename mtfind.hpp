@@ -58,98 +58,95 @@ std::string comparisonWords(const std::string& word, const std::string& mask)
 	return "";
 }
 
-int main(int argc, const char* arg[]) // в argv получаются входные данные
-{	
-	argc = 3;
-	const char* argv[] = {"qwerty", "C:\\Users\\alex1\\projects\\test.txt", "?ad" };
+int main(int argc, const char* argv[]) // в argv получаются входные данные
+{
 	if (argc == 3) // Если передаются аргументы, то argc будет больше 1
 	{
 		std::ifstream in(argv[1]); // окрываем файл для чтения
 		std::deque<std::string> dataFromFile;
+		std::unordered_map<std::string, std::string> answer;
 		std::string mask = argv[2];
 
 		if (in.is_open())
 		{
 			std::string line;
-			while (getline(in, line))
+			std::vector<std::thread> threads; // Создаётся вектор потоков
+			size_t threadCount = std::thread::hardware_concurrency();
+			size_t linesRead = threadCount * sizeof(std::string) * 1000;
+			while (!in.eof())
 			{
-				dataFromFile.emplace_back(std::move(line)); // Данные из файла записываются в вектор
-			}
-		}
-		in.close(); // закрываем файл
-
-		std::unordered_map<std::string, std::string> answer;
-		std::vector<std::thread> threads; // Создаётся вектор потоков
-		uint16_t threadCount = std::thread::hardware_concurrency();
-
-		for (size_t i = 0; i < threadCount; ++i)
-		{
-			std::thread comparationThread = std::thread([=, &answer, &dataFromFile]
+				for (size_t i = 0; i < linesRead && !in.eof(); ++i)
 				{
-					for (size_t it = i; it < dataFromFile.size(); it += threadCount)
+					getline(in, line);
+					if (line.empty()) { continue; }
+					dataFromFile.emplace_back(line);
+				}
+
+				for (size_t i = 0; i < threadCount; ++i)
+				{
+					auto comparationThread = std::thread([=, &answer, &dataFromFile]
 					{
-						std::string line = dataFromFile.at(it);
-						if (line.empty()) { continue; }
-						// Получается всё первое число в виде строки, 
-						// чтобы не было ограничений на ко-во символов
-						
-						char* next_token = NULL; // для безопасности strtok_s
-						char* dup = _strdup(line.c_str());
-						if (dup == NULL)
+						for (size_t it = i; it < dataFromFile.size(); it += threadCount)
 						{
-							std::cout << "Система не может выделить столько памяти" << std::endl;
-							system("pause");
-							return 1;
-						}
-						std::string num = strtok_s(dup, " ", &next_token);
-						free(dup);
-						line.erase(0, num.length()); // Удаление числа из начала строки
-						std::istringstream ist(line);
-						std::string word;
-						// Из каждого предложения достаются слова
-						while (ist >> word)
-						{
-							if (word.length() < mask.length()) { continue; }
+							auto localLine = dataFromFile.at(it);
 
-							std::string tmpAns = comparisonWords(word, mask);
-							if (!tmpAns.empty())
+							// Получается номер строки
+							char* next_token = NULL; // для безопасности strtok_s
+							auto dup = _strdup(localLine.c_str());
+							if (dup == NULL)
 							{
-								bool flag = true;
-								for (auto& itAns : answer)
-								{
+								std::cout << "Система не может выделить столько памяти" << std::endl;
+								system("pause");
+								return;
+							}
+							std::string num = strtok_s(dup, " ", &next_token);
+							free(dup);
+							localLine.erase(0, num.length()); // Удаление числа из начала строки
+							std::istringstream ist(localLine);
+							std::string word;
 
-									if (itAns.first == tmpAns)
-									{
-										flag = false;
-										break;
-									}
-								}
-								if (flag) // Если слово не повторяется, то добавляется в map
+							// Из каждого предложения достаются слова
+							while (ist >> word)
+							{
+								if (word.length() < mask.length()) { continue; }
+
+								std::string tmpAns = comparisonWords(word, mask);
+								if (!tmpAns.empty())
 								{
-									std::lock_guard<std::mutex> lk(g_mutex);
-									// num без std::move, поскольку может повторяться
-									answer.insert(std::make_pair(std::move(tmpAns), num));
+									bool flag = true;
+									for (auto& itAns : answer)
+									{
+										if (itAns.first == tmpAns)
+										{
+											flag = false;
+											break;
+										}
+									}
+									if (flag) // Если слово не повторяется, то добавляется в map
+									{
+										std::lock_guard<std::mutex> lk(g_mutex);
+										// num без std::move, поскольку может повторяться
+										answer.insert(std::make_pair(std::move(tmpAns), num));
+									}
 								}
 							}
 						}
-					}
-				});
-			threads.emplace_back(std::move(comparationThread)); // Поток добавляется в вектор потоков
-		}
+					});
+					threads.emplace_back(std::move(comparationThread)); // Поток добавляется в вектор потоков
+				}
 
-		// Объединение всех потоков
-		for (auto&& thr : threads)
-		{
-			if (thr.joinable())
-			{
-				thr.join();
+				// Объединение всех потоков
+				for (auto&& thr : threads)
+				{
+					if (thr.joinable()) { thr.join(); }
+				}
+				threads.clear();
+				dataFromFile.clear();
 			}
 		}
-
-		std::thread clearFileCashThread = std::thread([&]
-			{
-				dataFromFile.clear();
-			});
+		in.close(); // закрываем файл
+		
+		std::thread clearFileCashThread = std::thread([&] { dataFromFile.clear(); });
 
 		std::vector<std::pair<std::string, std::string>> elems(answer.begin(), answer.end());
 
