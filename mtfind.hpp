@@ -18,26 +18,26 @@ std::mutex g_mutex;
 // Пример:
 //    std::sort(elems.begin(), elems.end(), valComp);
 inline
-bool valComp(const std::pair<std::string, std::string> a,
-			 const std::pair<std::string, std::string> b)
+bool valComp(const std::pair<std::string, std::string>& a,
+			 const std::pair<std::string, std::string>& b)
 {
-	return a.second < b.second;
+	return std::stoi(a.second) < std::stoi(b.second);
 }
 
 // Фнкция сравнивает слово по маске.
 // Пример:
 //    std::string tmpAns = comparisonWords(word, mask);
-std::string comparisonWords(const std::string& word, const std::string& mask)
+std::string& comparisonWords(const std::string& word, const std::string& mask)
 {   /*
 	*   алло | ?ло \            алло | ?да  \
 	*   ?ло   ?ло   - "лло"     ?да   ?да    - ""
 	*   алло алло  /            алло алло   /
 	*/
 
+	std::string res; // Итоговая строка
 	for (size_t wI = 0; wI < word.length(); ++wI) // wI - word index
 	{
-		size_t mICount = 0; // Колличество совпадений по по маске
-		std::string res; // Итоговая строка
+		size_t mICount = 0; // Колличество совпадений по по маске		
 		for (size_t mI = 0; mI < mask.length(); ++mI) // mI - mask index
 		{
 			if (wI + mI < word.length())
@@ -55,11 +55,13 @@ std::string comparisonWords(const std::string& word, const std::string& mask)
 		// значит строка полностью подходит под маску
 		if (mICount == mask.length()) { return res; }
 	}
-	return "";
+	return res;
 }
 
-int main(int argc, const char* argv[]) // в argv получаются входные данные
+int main(int argc, const char* arg[]) // в argv получаются входные данные
 {
+	argc = 3;
+	const char* argv[] = {"qwerty", "C:\\Users\\alex1\\projects\\test.txt", "?ad" };
 	if (argc == 3) // Если передаются аргументы, то argc будет больше 1
 	{
 		std::ifstream in(argv[1]); // окрываем файл для чтения
@@ -91,22 +93,15 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 							auto localLine = dataFromFile.at(it);
 
 							// Получается номер строки
-							char* next_token = NULL; // для безопасности strtok_s
-							auto dup = _strdup(localLine.c_str());
-							if (dup == NULL)
-							{
-								std::cout << "Система не может выделить столько памяти" << std::endl;
-								system("pause");
-								return;
-							}
-							std::string num = strtok_s(dup, " ", &next_token);
-							free(dup);
+							std::istringstream iss(localLine);
+							std::string num;
+							std::getline(iss, num, ' ');
+							
 							localLine.erase(0, num.length()); // Удаление числа из начала строки
 							std::istringstream ist(localLine);
 							std::string word;
-
-							// Из каждого предложения достаются слова
-							while (ist >> word)
+							
+							while (ist >> word) // Из каждого предложения достаются слова
 							{
 								if (word.length() < mask.length()) { continue; }
 
@@ -152,9 +147,9 @@ int main(int argc, const char* argv[]) // в argv получаются вход�
 
 		// Полученные элементы сортируются по значению
 		std::thread sortThread = std::thread([&]
-			{
-				std::sort(elems.begin(), elems.end(), valComp); 
-			});
+		{
+			std::sort(elems.begin(), elems.end(), valComp); 
+		});
 		
 		std::thread([&] { answer.clear(); }).detach();
 
