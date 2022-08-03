@@ -2,6 +2,9 @@
 // Запуск программы: mtfind input.txt "?ad"
 // Результат: 3; 5 bad; 6 mad; 7 had.
 
+#include <unordered_map>
+#include <algorithm>
+#include <iterator>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -9,7 +12,6 @@
 #include <future>
 #include <vector>
 #include <mutex>
-#include <unordered_map>
 #include <deque>
 
 std::mutex g_mutex;
@@ -21,22 +23,22 @@ inline
 bool valComp(const std::pair<std::string, std::string>& a,
 			 const std::pair<std::string, std::string>& b)
 {
-	return std::stoi(a.second) < std::stoi(b.second);
+	return std::stoll(a.second) < std::stoll(b.second);
 }
 
 // Фнкция сравнивает слово по маске.
 // Пример:
 //    std::string tmpAns = comparisonWords(word, mask);
-std::string& comparisonWords(const std::string& word, const std::string& mask)
+std::string comparisonWords(const std::string& word, const std::string& mask)
 {   /*
 	*   алло | ?ло \            алло | ?да  \
 	*   ?ло   ?ло   - "лло"     ?да   ?да    - ""
 	*   алло алло  /            алло алло   /
 	*/
-
-	std::string res; // Итоговая строка
+		
 	for (size_t wI = 0; wI < word.length(); ++wI) // wI - word index
 	{
+		std::string res; // Итоговая строка
 		size_t mICount = 0; // Колличество совпадений по по маске		
 		for (size_t mI = 0; mI < mask.length(); ++mI) // mI - mask index
 		{
@@ -55,28 +57,27 @@ std::string& comparisonWords(const std::string& word, const std::string& mask)
 		// значит строка полностью подходит под маску
 		if (mICount == mask.length()) { return res; }
 	}
-	return res;
+	return std::string(); // RVO оптимизация
 }
 
-int main(int argc, const char* arg[]) // в argv получаются входные данные
+int main(int argc, const char* argv[]) // в argv получаются входные данные
 {
-	argc = 3;
-	const char* argv[] = {"qwerty", "C:\\Users\\alex1\\projects\\test.txt", "?ad" };
 	if (argc == 3) // Если передаются аргументы, то argc будет больше 1
 	{
 		std::ifstream in(argv[1]); // окрываем файл для чтения
 		std::deque<std::string> dataFromFile;
 		std::unordered_map<std::string, std::string> answer;
-		std::string mask = argv[2];
+		const std::string mask = argv[2];
 
 		if (in.is_open())
 		{
 			std::string line;
 			std::vector<std::thread> threads; // Создаётся вектор потоков
-			size_t threadCount = std::thread::hardware_concurrency();
-			size_t linesRead = threadCount * sizeof(std::string) * 1000;
+			const size_t threadCount = std::thread::hardware_concurrency();
+			const size_t linesRead = threadCount * sizeof(std::string) * 1000;
 			while (!in.eof())
 			{
+				// Из файла получаются данные
 				for (size_t i = 0; i < linesRead && !in.eof(); ++i)
 				{
 					getline(in, line);
@@ -104,25 +105,25 @@ int main(int argc, const char* arg[]) // в argv получаются входн
 							while (ist >> word) // Из каждого предложения достаются слова
 							{
 								if (word.length() < mask.length()) { continue; }
+								// Слова сравниваются
+								std::string tmpAns = comparisonWords(std::move(word), mask);
+								if (tmpAns.empty()) { continue; }
 
-								std::string tmpAns = comparisonWords(word, mask);
-								if (!tmpAns.empty())
+								bool flag = true;
+								for (auto& itAns : answer)
 								{
-									bool flag = true;
-									for (auto& itAns : answer)
+									if (itAns.first == tmpAns)
 									{
-										if (itAns.first == tmpAns)
-										{
-											flag = false;
-											break;
-										}
+										flag = false;
+										break;
 									}
-									if (flag) // Если слово не повторяется, то добавляется в map
-									{
-										std::lock_guard<std::mutex> lk(g_mutex);
-										// num без std::move, поскольку может повторяться
-										answer.insert(std::make_pair(std::move(tmpAns), num));
-									}
+								}
+								// TODO: избавиться от g_mutex и возвращать данные через promise
+								if (flag) // Если слово не повторяется, то добавляется в map
+								{
+									std::lock_guard<std::mutex> lk(g_mutex);
+									// num без std::move, поскольку может повторяться
+									answer.insert(std::make_pair(std::move(tmpAns), num));
 								}
 							}
 						}
@@ -139,10 +140,11 @@ int main(int argc, const char* arg[]) // в argv получаются входн
 				dataFromFile.clear();
 			}
 		}
-		in.close(); // закрываем файл
+		in.close(); // Поток чтения файла закрывается
 		
 		std::thread clearFileCashThread = std::thread([&] { dataFromFile.clear(); });
 
+		// Для сортировки элементов по ключам
 		std::vector<std::pair<std::string, std::string>> elems(answer.begin(), answer.end());
 
 		// Полученные элементы сортируются по значению
